@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кольоровий калькулятор на колі Іттена</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0, #d1d1d1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .canvas-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        canvas {
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 18px;
+        }
+        .result-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Кольоровий калькулятор на колі Іттена</h1>
+    <p>Натисніть на колі, щоб вибрати колір</p>
+    <div class="canvas-container">
+        <canvas id="colorWheel" width="300" height="300"></canvas>
+    </div>
+
+    <div class="result" id="result">
+        <div class="result-color" id="selectedColor">---</div>
+        <div>Підходящі кольори:</div>
+        <div class="result-color" id="matchColor1">---</div>
+        <div class="result-color" id="matchColor2">---</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("colorWheel");
+        const ctx = canvas.getContext("2d");
+
+        // Створення кольорового колеса
+        function drawColorWheel() {
+            const radius = canvas.width / 2;
+            for (let angle = 0; angle < 360; angle++) {
+                const radian = angle * (Math.PI / 180);
+                ctx.beginPath();
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, radian, radian + 0.0175);
+                ctx.closePath();
+                ctx.fillStyle = `hsl(${angle}, 100%, 50%)`;
+                ctx.fill();
+            }
+        }
+
+        drawColorWheel();
+
+        // Отримання кольору по кліку
+        canvas.addEventListener("click", (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const pixelData = ctx.getImageData(x, y, 1, 1).data;
+            const hexColor = rgbToHex(pixelData[0], pixelData[1], pixelData[2]);
+
+            // Відображення вибраного кольору та сумісних
+            document.getElementById("selectedColor").style.backgroundColor = hexColor;
+            document.getElementById("selectedColor").textContent = hexColor;
+
+            const hslColor = rgbToHsl(pixelData[0], pixelData[1], pixelData[2]);
+            const matchColor1 = hslToHex((hslColor[0] + 120) % 360, hslColor[1], hslColor[2]);
+            const matchColor2 = hslToHex((hslColor[0] + 240) % 360, hslColor[1], hslColor[2]);
+
+            document.getElementById("matchColor1").style.backgroundColor = matchColor1;
+            document.getElementById("matchColor1").textContent = matchColor1;
+
+            document.getElementById("matchColor2").style.backgroundColor = matchColor2;
+            document.getElementById("matchColor2").textContent = matchColor2;
+        });
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255, g /= 255, b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+        }
+
+        function hslToHex(h, s, l) {
+            s /= 100;
+            l /= 100;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = l - c/2;
+            let r = 0, g = 0, b = 0;
+
+            if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+            else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+            else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+            else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+            else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+
+            return rgbToHex(r, g, b);
+        }
+    </script>
+</body>
+</html>
